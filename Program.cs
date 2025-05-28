@@ -24,12 +24,19 @@ class Program
             return;
         }
 
+        // Deserialize XML
         var serializer = new XmlSerializer(typeof(MeasurementExport));
         using var reader = new StreamReader(xmlFilePath);
         var data = (MeasurementExport)serializer.Deserialize(reader);
 
+        // Convert to JSON
         var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-        Console.WriteLine(json);
+
+        // Save to output.json
+        string outputFilePath = Path.Combine(config.XmlFolderPath, "output.json");
+        File.WriteAllText(outputFilePath, json);
+
+        Console.WriteLine($"JSON saved to: {outputFilePath}");
     }
 }
 
