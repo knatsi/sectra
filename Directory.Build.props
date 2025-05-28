@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project>
-  <PropertyGroup>
-    <Nullable>enable</Nullable>
-
-    <AssemblyName>ExampleFormsDataProvider.$(MSBuildProjectName)</AssemblyName>
-    <RootNamespace>ExampleFormsDataProvider.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
-  </PropertyGroup>
-</Project>
