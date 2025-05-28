@@ -1,0 +1,118 @@
+<MeasurementExport docVersion="1.0.0.0">
+  <Patient>
+    <Address />
+    <Birthdate>2002-02-09T00:00:00</Birthdate>
+    <City />
+    <Comments />
+    <Email />
+    <EthnicGroup />
+    <FirstName>Test</FirstName>
+    <IssuerOfPatientId />
+    <LastName>Testsson</LastName>
+    <MiddleName />
+    <NamePrefix />
+    <NameSuffix />
+    <PatientId>191212121212</PatientId>
+    <PatientIdValidationStatus>0</PatientIdValidationStatus>
+    <Phone1 />
+    <Phone2 />
+    <Sex>M</Sex>
+    <State />
+    <OtherPatientId>
+      <IsPrimary>true</IsPrimary>
+      <IssuerOfPatientId />
+      <PatientId>191212121212</PatientId>
+      <PatientIdValidationStatus>0</PatientIdValidationStatus>
+      <TypeOfPatientId>TEXT</TypeOfPatientId>
+    </OtherPatientId>
+    <Study>
+      <Abortion />
+      <AccessionNumber>SEFVXJ0005000000</AccessionNumber>
+      <AdditionalPatientHistory />
+      <AdmissionId />
+      <CurrentPatientLocation />
+      <DepartmentOfRequestInitiation />
+      <Ectopic />
+      <Height>1.85</Height>
+      <ImageServiceRequestComments />
+      <Indications />
+      <PregnancyOrigin />
+      <RequestedContrastAgent />
+      <RequestedProcedureDescription>Ekokardiografi</RequestedProcedureDescription>
+      <RequestedProcedureId>SEFVXJ0004984810</RequestedProcedureId>
+      <StudyDateTime>2024-12-17T08:13:45</StudyDateTime>
+      <StudyDescription>Ekokardiografi</StudyDescription>
+      <StudyInstanceUID>1.2.752.24.5.667182981.20241113042632.5061653</StudyInstanceUID>
+      <StudyId>SEFVXJ0004900000</StudyId>
+      <Weight>79</Weight>
+      <Series>
+        <BodyPartExamined />
+        <Category>C</Category>
+        <ContrastAgent />
+        <DepartmentName>BFC_Klinisk_Fysiologi</DepartmentName>
+        <ExamComments />
+        <ExamDiagnosis />
+        <InstitutionAddress />
+        <InstitutionName>Centrallasarettet VÃ¤xjÃ¶</InstitutionName>
+        <IsStressExam>false</IsStressExam>
+        <LastModifiedByADSVersion>2.0.5.0</LastModifiedByADSVersion>
+        <LastModifiedByVersion>Vivid E95:206.46.0</LastModifiedByVersion>
+        <Modality>US</Modality>
+        <PerformedLocation />
+        <PerformedStationAETitle />
+        <PPSDescription>Ekokardiografi</PPSDescription>
+        <ProtocolName>Ekokardiografi</ProtocolName>
+        <RetrieveAETitle />
+        <ScheduledStationAETitle />
+        <SeriesDateTime>2024-12-17T08:13:45</SeriesDateTime>
+        <SeriesDescription />
+        <SeriesInstanceUID>1.2.840.113619.2.391.25109.1734423225.1.1</SeriesInstanceUID>
+        <SignedOff>false</SignedOff>
+        <SPSDescription>Ekokardiografi</SPSDescription>
+        <SPSId>SEFVXJ0005061653</SPSId>
+        <SPSLocation />
+        <SPSStartDateTime>2024-12-17T00:00:00</SPSStartDateTime>
+        <SubCategory />
+        <VCRTapeCounter />
+        <VCRTapeName />
+        <Parameter>
+          <AverageType>A</AverageType>
+          <Category>C</Category>
+          <DisplayUnit>cm</DisplayUnit>
+          <Edited>false</Edited>
+          <ExcludedFromAvg>false</ExcludedFromAvg>
+          <ExcludedFromCalc>false</ExcludedFromCalc>
+          <MeasureId>Cardiac/2D/Dimension/IVSd</MeasureId>
+          <ParameterId>2D/IVSd</ParameterId>
+          <ParameterName>IVSd</ParameterName>
+          <Qualifier />
+          <ResultNo>-1</ResultNo>
+          <ResultValue>0.0081649904761147852</ResultValue>
+          <ScanMode>2D</ScanMode>
+          <StudyId>Cardiac/2D/Dimension</StudyId>
+          <ParameterType>M</ParameterType>
+          <DisplayValue>0.81649904761147851</DisplayValue>
+        </Parameter>
+        <Parameter>
+          <AverageType>A</AverageType>
+          <Category>C</Category>
+          <DisplayUnit>cm</DisplayUnit>
+          <Edited>false</Edited>
+          <ExcludedFromAvg>false</ExcludedFromAvg>
+          <ExcludedFromCalc>false</ExcludedFromCalc>
+          <MeasureId>Cardiac/2D/Dimension/IVSd</MeasureId>
+          <ParameterId>2D/IVSd</ParameterId>
+          <ParameterName>IVSd</ParameterName>
+          <Qualifier />
+          <ResultNo>0</ResultNo>
+          <ResultValue>0.0081649904761147852</ResultValue>
+          <ScanMode>2D</ScanMode>
+          <StudyId>Cardiac/2D/Dimension</StudyId>
+          <ParameterType>M</ParameterType>
+          <DisplayValue>0.81649904761147851</DisplayValue>
+        </Parameter>
+      </Series>
+      <BSA>2.03</BSA>
+    </Study>
+  </Patient>
+</MeasurementExport>
