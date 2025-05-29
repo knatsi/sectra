@@ -1,0 +1,15 @@
+/workspaces/sectra/XmlToJsonApp/bin/Debug/net8.0/XmlToJsonApp
+/workspaces/sectra/XmlToJsonApp/bin/Debug/net8.0/XmlToJsonApp.deps.json
+/workspaces/sectra/XmlToJsonApp/bin/Debug/net8.0/XmlToJsonApp.runtimeconfig.json
+/workspaces/sectra/XmlToJsonApp/bin/Debug/net8.0/XmlToJsonApp.dll
+/workspaces/sectra/XmlToJsonApp/bin/Debug/net8.0/XmlToJsonApp.pdb
+/workspaces/sectra/XmlToJsonApp/obj/Debug/net8.0/XmlToJsonApp.GeneratedMSBuildEditorConfig.editorconfig
+/workspaces/sectra/XmlToJsonApp/obj/Debug/net8.0/XmlToJsonApp.AssemblyInfoInputs.cache
+/workspaces/sectra/XmlToJsonApp/obj/Debug/net8.0/XmlToJsonApp.AssemblyInfo.cs
+/workspaces/sectra/XmlToJsonApp/obj/Debug/net8.0/XmlToJsonApp.csproj.CoreCompileInputs.cache
+/workspaces/sectra/XmlToJsonApp/obj/Debug/net8.0/XmlToJsonApp.sourcelink.json
+/workspaces/sectra/XmlToJsonApp/obj/Debug/net8.0/XmlToJsonApp.dll
+/workspaces/sectra/XmlToJsonApp/obj/Debug/net8.0/refint/XmlToJsonApp.dll
+/workspaces/sectra/XmlToJsonApp/obj/Debug/net8.0/XmlToJsonApp.pdb
+/workspaces/sectra/XmlToJsonApp/obj/Debug/net8.0/XmlToJsonApp.genruntimeconfig.cache
+/workspaces/sectra/XmlToJsonApp/obj/Debug/net8.0/ref/XmlToJsonApp.dll

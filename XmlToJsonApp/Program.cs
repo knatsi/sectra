@@ -7,7 +7,7 @@ class Program
 {
     static void Main()
     {
-        var configPath = Path.Combine(AppContext.BaseDirectory, "settings.json");
+        var configPath = "settings.json";
         var configJson = File.ReadAllText(configPath);
         var config = JsonSerializer.Deserialize<Config>(configJson);
 

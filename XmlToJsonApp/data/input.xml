@@ -109,7 +109,7 @@
           <ScanMode>2D</ScanMode>
           <StudyId>Cardiac/2D/Dimension</StudyId>
           <ParameterType>M</ParameterType>
-          <DisplayValue>0.81649904761147851</DisplayValue>
+          <DisplayValue>0.91649904761147851</DisplayValue>
         </Parameter>
       </Series>
       <BSA>2.03</BSA>
