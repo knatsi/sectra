@@ -22,8 +22,8 @@ public static class SwaggerStartup {
                     Email = "support@example.com"
                 },
             });
-	    var xmlPath = configuration["Swagger:XmlDocsPath"];
-            var xmlFiles = Directory.GetFiles(AppContext.BaseDirectory, "*test.xml", SearchOption.TopDirectoryOnly);
+
+            var xmlFiles = Directory.GetFiles(AppContext.BaseDirectory, "ExampleFormsDataProvider.*.xml", SearchOption.TopDirectoryOnly);
             foreach (var filePath in xmlFiles) {
                 c.IncludeXmlComments(filePath);
             }
@@ -49,3 +49,4 @@ public static class SwaggerStartup {
         });
     }
 }
+
