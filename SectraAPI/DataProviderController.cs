@@ -47,22 +47,30 @@ public class DataProviderController : ControllerBase {
     var folder = _configuration["XmlSettings:FolderPath"] ?? "Data";
     var file = _configuration["XmlSettings:FileName"] ?? "HeartProviderAdults.xml";
     var path = Path.Combine(folder, file);
+    Console.WriteLine($"[DEBUG] Loading file from path: {path}");
 
-    if (!System.IO.File.Exists(path))
+    if (!System.IO.File.Exists(path)) {
+        Console.WriteLine("[ERROR] File not found.");
         throw new FileNotFoundException($"File not found: {path}");
+    }
 
     var serializer = new XmlSerializer(typeof(MeasurementExport));
     using var reader = new StreamReader(path);
     var export = (MeasurementExport?)serializer.Deserialize(reader);
 
-    if (export?.Patient?.Study == null)
+    if (export?.Patient?.Study == null) {
+        Console.WriteLine("[WARN] No Patient study found.");
         return result;
-
+    }
+        
     var study = export.Patient.Study;
+       Console.WriteLine($"[DEBUG] Found StudyId(XML): {study.StudyId}");
 
     // Only proceed if StudyId matches request. Correct? What should be checked against?
-    if (study.StudyId != studyUid)
+    if (study.StudyId != studyUid) {
+        Console.WriteLine($"[WARN] StudyId does not match input ({studyUid}). Skipping.");
         return result;
+    }
 
     var parameters = study.Series?.Parameters;
     if (parameters == null) return result;
