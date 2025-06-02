@@ -23,8 +23,8 @@ public class Patient
 
 public class Study
 {
+    public string StudyInstanceUID { get; set; }
     public string StudyId { get; set; }
-    public string AccessionNumber { get; set; }
 
     public Series Series { get; set; }
 }

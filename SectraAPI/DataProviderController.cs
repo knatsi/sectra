@@ -64,11 +64,11 @@ public class DataProviderController : ControllerBase {
     }
         
     var study = export.Patient.Study;
-       Console.WriteLine($"[DEBUG] Found StudyId(XML): {study.StudyId}");
+       Console.WriteLine($"[DEBUG] Found Study(XML): {study.StudyInstanceUID} With StudyID: {study.StudyId}");
 
-    // Only proceed if StudyId matches request. Correct? What should be checked against?
-    if (study.StudyId != studyUid) {
-        Console.WriteLine($"[WARN] StudyId does not match input ({studyUid}). Skipping.");
+    // Only proceed if StudyUID matches request. Correct? What should be checked against?
+    if (study.StudyInstanceUID != studyUid) {
+        Console.WriteLine($"[WARN] StudyUID(XML) does not match input ({studyUid}). Skipping.");
         return result;
     }
 
