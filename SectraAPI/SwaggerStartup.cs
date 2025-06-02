@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace ExampleFormsDataProvider.WebService; 
+namespace HeartProviderAdults.WebService; 
 
 public static class SwaggerStartup {
     /// <summary>
@@ -15,7 +15,7 @@ public static class SwaggerStartup {
     public static void AddSwagger(this IServiceCollection services) {
         services.AddSwaggerGen(c => {
             c.SwaggerDoc("v1", new OpenApiInfo {
-                Title = "ExampleFormsDataProvider API",
+                Title = "HeartProviderAdults API",
                 Version = "v1.0",
                 Contact = new OpenApiContact {
                     Name = "Example",
@@ -23,7 +23,7 @@ public static class SwaggerStartup {
                 },
             });
 
-            var xmlFiles = Directory.GetFiles(AppContext.BaseDirectory, "ExampleFormsDataProvider.*.xml", SearchOption.TopDirectoryOnly);
+            var xmlFiles = Directory.GetFiles(AppContext.BaseDirectory, "HeartProviderAdults.*.xml", SearchOption.TopDirectoryOnly);
             foreach (var filePath in xmlFiles) {
                 c.IncludeXmlComments(filePath);
             }
@@ -44,7 +44,7 @@ public static class SwaggerStartup {
 
         // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.), specifying the Swagger JSON endpoint.
         app.UseSwaggerUI(c => {
-            c.SwaggerEndpoint("v1/swagger.json", "ExampleFormsDataProvider API");
+            c.SwaggerEndpoint("v1/swagger.json", "HeartProviderAdults API");
             c.RoutePrefix = "docs";
         });
     }

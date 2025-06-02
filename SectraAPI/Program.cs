@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 
-namespace ExampleFormsDataProvider.WebService;
+namespace HeartProviderAdults.WebService;
 
 public static class Program {
     public static void Main(string[] args) {

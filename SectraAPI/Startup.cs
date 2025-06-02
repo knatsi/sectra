@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ExampleFormsDataProvider.WebService;
+namespace HeartProviderAdults.WebService;
 
 internal class Startup {
     /// <summary>

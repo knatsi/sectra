@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>WebService</name>
+    </assembly>
+    <members>
+        <member name="M:HeartProviderAdults.WebService.DataProviderController.GetStructuredDataCompatibility">
+            <summary>
+            Gets the compatibility information about this service.
+            </summary>
+        </member>
+        <member name="M:HeartProviderAdults.WebService.DataProviderController.GetStructuredData(HeartProviderAdults.WebService.GetStructuredDataRequest)">
+            <summary>
+            Gets the structured data to use in templates.
+            </summary>
+        </member>
+        <member name="T:HeartProviderAdults.WebService.GetStructuredDataRequest">
+            <summary>Contains the information passed to the GetStructuredData endpoint.</summary>
+        </member>
+        <member name="T:HeartProviderAdults.WebService.User">
+            <inheritdoc cref="T:HeartProviderAdults.WebService.GetStructuredDataRequest"/>
+        </member>
+        <member name="T:HeartProviderAdults.WebService.Patient">
+            <inheritdoc cref="T:HeartProviderAdults.WebService.GetStructuredDataRequest"/>
+        </member>
+        <member name="T:HeartProviderAdults.WebService.Exam">
+            <inheritdoc cref="T:HeartProviderAdults.WebService.GetStructuredDataRequest"/>
+        </member>
+        <member name="T:HeartProviderAdults.WebService.GetStructuredDataResult">
+            <summary>Contains the information returned from the GetStructuredData endpoint.</summary>
+        </member>
+        <member name="T:HeartProviderAdults.WebService.CompatibilityInfo">
+            <summary>Contains compatibility information for the data provider.</summary>
+        </member>
+        <member name="M:HeartProviderAdults.WebService.Startup.ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            Called by the runtime. Used to add services to the container.
+            </summary>
+        </member>
+        <member name="M:HeartProviderAdults.WebService.Startup.Configure(Microsoft.AspNetCore.Builder.IApplicationBuilder,Microsoft.AspNetCore.Hosting.IWebHostEnvironment,System.IServiceProvider)">
+            <summary>
+            Used to configure the HTTP request pipeline.
+            </summary>
+        </member>
+        <member name="M:HeartProviderAdults.WebService.SwaggerStartup.AddSwagger(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            Add swagger generation
+            </summary>
+        </member>
+        <member name="M:HeartProviderAdults.WebService.SwaggerStartup.UseApiDocumentation(Microsoft.AspNetCore.Builder.IApplicationBuilder)">
+            <summary>
+            Enables endpoints for generating OpenAPI specifications and for viewing/trying the API out.
+            </summary>
+        </member>
+    </members>
+</doc>

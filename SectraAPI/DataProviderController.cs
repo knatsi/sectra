@@ -2,14 +2,23 @@ using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using System.Xml.Serialization;
+using System.IO;
+using System.Linq;
+using Microsoft.Extensions.Configuration;
 
-namespace ExampleFormsDataProvider.WebService;
+namespace HeartProviderAdults.WebService;
 
 // TODO: This should require authorization using a basic auth header. This header will automatically be included in requests to all Sectra Forms data providers.
 [Route("")]
 [ApiController]
 public class DataProviderController : ControllerBase {
-    private static readonly CompatibilityInfo CompatibilityInfoV1 = new() { Uid = "ExampleFormsDataProvider", Version = 1 };
+
+    private readonly IConfiguration _configuration;
+
+    public DataProviderController(IConfiguration configuration) {_configuration = configuration;}
+
+    private static readonly CompatibilityInfo CompatibilityInfoV1 = new() { Uid = "HeartProviderAdults", Version = 1 };
 
     /// <summary>
     /// Gets the compatibility information about this service.
@@ -27,21 +36,50 @@ public class DataProviderController : ControllerBase {
     [Route("v1/GetStructuredData")]
     public GetStructuredDataResult GetStructuredData([FromBody] GetStructuredDataRequest request) {
         var studyUid = request.Exam?.StudyUid;
-        var data = GetTemplateData(studyUid);
+        var data = ExtractData(studyUid);
         return new GetStructuredDataResult { Compatibility = CompatibilityInfoV1, PropValues = data };
     }
 
-    private Dictionary<string, string> GetTemplateData(string? studyUid) {
-        var result = new Dictionary<string, string>();
+    private Dictionary<string, string> ExtractData(string studyUid)
+    {
+    var result = new Dictionary<string, string>();
 
-        if (!string.IsNullOrWhiteSpace(studyUid)) {
-            // TODO: This should collect the actual data to be returned to the template. Specified as strings here, but could be any JSON-compatible value, like arrays or objects if needed.
-            result.Add("param1", "1.2");
-        }
+    var folder = _configuration["XmlSettings:FolderPath"] ?? "Data";
+    var file = _configuration["XmlSettings:FileName"] ?? "HeartProviderAdults.xml";
+    var path = Path.Combine(folder, file);
 
+    if (!System.IO.File.Exists(path))
+        throw new FileNotFoundException($"File not found: {path}");
+
+    var serializer = new XmlSerializer(typeof(MeasurementExport));
+    using var reader = new StreamReader(path);
+    var export = (MeasurementExport?)serializer.Deserialize(reader);
+
+    if (export?.Patient?.Study == null)
         return result;
+
+    var study = export.Patient.Study;
+
+    // Only proceed if StudyId matches request. Correct? What should be checked against?
+    if (study.StudyId != studyUid)
+        return result;
+
+    var parameters = study.Series?.Parameters;
+    if (parameters == null) return result;
+
+    foreach (var param in parameters)
+    {
+        if (!string.IsNullOrEmpty(param.ParameterId))
+        {
+            result[param.ParameterId + "_" + param.ResultNo] = param.DisplayValue ?? "";
+        }
+    }
+
+    return result;
     }
 }
+
+
 
 /// <summary>Contains the information passed to the GetStructuredData endpoint.</summary>
 public class GetStructuredDataRequest {
@@ -92,3 +130,4 @@ public class CompatibilityInfo {
 
     public required int Version { get; init; }
 }
+
