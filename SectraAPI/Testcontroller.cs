@@ -74,8 +74,13 @@ public class DataProviderController : ControllerBase {
     public GetStructuredDataResult GetStructuredData([FromBody] GetStructuredDataRequest request) {
         var studyUid = request.Exam?.StudyUid;
         var patientIds = request.Patient?.Ids;
+        var filepath = FindMatchingFile(studyUid, patientIds);
+            if (filepath == null)
+                {
+                    throw new FileNotFoundException("Matching XML file not found.");
+                }
         var data = ExtractData(studyUid, filepath);
-        var filepath = FindMatchingFiles(studyUid, patientIds)
+        
         return new GetStructuredDataResult { Compatibility = CompatibilityInfoV1, PropValues = data };
     }
 
