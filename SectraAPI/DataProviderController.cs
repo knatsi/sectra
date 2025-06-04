@@ -6,6 +6,7 @@ using System.Xml.Serialization;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
+using System.Xml.Linq;
 
 namespace HeartProviderAdults.WebService;
 
@@ -15,11 +16,62 @@ namespace HeartProviderAdults.WebService;
 public class DataProviderController : ControllerBase {
 
     private readonly IConfiguration _configuration;
-
     public DataProviderController(IConfiguration configuration) {_configuration = configuration;}
+
 
     private static readonly CompatibilityInfo CompatibilityInfoV1 = new() { Uid = "HeartProviderAdults", Version = 1 };
 
+
+    private string? FindMatchingFile(string studyUid, string[] patientIds) {
+      
+        var folderPath = _configuration["XmlSettings:FolderPath"] ?? "Data";
+
+        if (!Directory.Exists(folderPath))
+            throw new DirectoryNotFoundException($"Folder not found: {folderPath}");
+
+        var normalizedIds = patientIds.Select(id => id.Replace("-", "")).ToList();
+
+        var xmlFiles = Directory.GetFiles(folderPath, "*.xml")
+                        .Where(f => normalizedIds.Any(id => Path.GetFileName(f).Contains(id)))
+                        .ToList();
+
+        foreach (var file in xmlFiles)
+        {
+            try
+            {
+                var xdoc = XDocument.Load(file);
+                var xmlStudyUid = xdoc.Descendants("StudyInstanceUID").FirstOrDefault()?.Value;
+
+                if (xmlStudyUid == studyUid)
+                    return file;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to process {file}: {ex.Message}");
+            }
+        }
+        
+        //Failsafe--- if no matching filenames, search through all files for mathcing Uid
+        foreach (var file in Directory.GetFiles(folderPath, "*.xml"))
+        {
+        try
+        {
+            var xdoc = XDocument.Load(file);
+            var xmlStudyUid = xdoc.Descendants("StudyInstanceUID").FirstOrDefault()?.Value;
+
+            if (xmlStudyUid == studyUid)
+                return file;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to process {file}: {ex.Message}");
+        }
+    }
+        return null;
+    }
+    
+
+    
     /// <summary>
     /// Gets the compatibility information about this service.
     /// </summary>
@@ -29,24 +81,32 @@ public class DataProviderController : ControllerBase {
         return CompatibilityInfoV1;
     }
 
+
+
+
     /// <summary>
     /// Gets the structured data to use in templates.
-    /// </summary>
+    /// </summary>  
     [HttpPost]
     [Route("v1/GetStructuredData")]
     public GetStructuredDataResult GetStructuredData([FromBody] GetStructuredDataRequest request) {
         var studyUid = request.Exam?.StudyUid;
-        var data = ExtractData(studyUid);
+        var patientIds = request.Patient?.Ids;
+        var filePath = FindMatchingFile(studyUid, patientIds);
+            if (filePath == null)
+                {
+                    throw new FileNotFoundException("Matching XML file not found.");
+                }
+        var data = ExtractData(studyUid, filePath);
+        
         return new GetStructuredDataResult { Compatibility = CompatibilityInfoV1, PropValues = data };
     }
 
-    private Dictionary<string, string> ExtractData(string studyUid)
+    private Dictionary<string, string> ExtractData(string studyUid, string filePath)
     {
     var result = new Dictionary<string, string>();
 
-    var folder = _configuration["XmlSettings:FolderPath"] ?? "Data";
-    var file = _configuration["XmlSettings:FileName"] ?? "HeartProviderAdults.xml";
-    var path = Path.Combine(folder, file);
+    var path = filePath;
     Console.WriteLine($"[DEBUG] Loading file from path: {path}");
 
     if (!System.IO.File.Exists(path)) {

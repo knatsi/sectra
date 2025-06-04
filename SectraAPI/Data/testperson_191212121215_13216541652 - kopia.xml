@@ -43,7 +43,7 @@
       <RequestedProcedureId>SEFVXJ0004984810</RequestedProcedureId>
       <StudyDateTime>2024-12-17T08:13:45</StudyDateTime>
       <StudyDescription>Ekokardiografi</StudyDescription>
-      <StudyInstanceUID>1.2.2</StudyInstanceUID>
+      <StudyInstanceUID>1.2.8</StudyInstanceUID>
       <StudyId>SEFVXJ0004900000</StudyId>
       <Weight>79</Weight>
       <Series>
@@ -92,7 +92,7 @@
           <ScanMode>2D</ScanMode>
           <StudyId>Cardiac/2D/Dimension</StudyId>
           <ParameterType>M</ParameterType>
-          <DisplayValue>0.2</DisplayValue>
+          <DisplayValue>0.8</DisplayValue>
         </Parameter>
         <Parameter>
           <AverageType>A</AverageType>
@@ -110,7 +110,7 @@
           <ScanMode>2D</ScanMode>
           <StudyId>Cardiac/2D/Dimension</StudyId>
           <ParameterType>M</ParameterType>
-          <DisplayValue>0.22</DisplayValue>
+          <DisplayValue>0.88</DisplayValue>
         </Parameter>
       </Series>
       <BSA>2.03</BSA>

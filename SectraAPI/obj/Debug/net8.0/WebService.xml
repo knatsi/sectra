@@ -12,7 +12,7 @@
         <member name="M:HeartProviderAdults.WebService.DataProviderController.GetStructuredData(HeartProviderAdults.WebService.GetStructuredDataRequest)">
             <summary>
             Gets the structured data to use in templates.
-            </summary>
+            </summary>  
         </member>
         <member name="T:HeartProviderAdults.WebService.GetStructuredDataRequest">
             <summary>Contains the information passed to the GetStructuredData endpoint.</summary>
