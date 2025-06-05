@@ -40,7 +40,7 @@
       <PregnancyOrigin />
       <RequestedContrastAgent />
       <RequestedProcedureDescription>Ekokardiografi</RequestedProcedureDescription>
-      <RequestedProcedureId>SEFVXJ0004984810</RequestedProcedureId>
+      <RequestedProcedureId>SEFVXJ0</RequestedProcedureId>
       <StudyDateTime>2024-12-17T08:13:45</StudyDateTime>
       <StudyDescription>Ekokardiografi</StudyDescription>
       <StudyInstanceUID>1.2.1</StudyInstanceUID>
@@ -67,10 +67,10 @@
         <ScheduledStationAETitle />
         <SeriesDateTime>2024-12-17T08:13:45</SeriesDateTime>
         <SeriesDescription />
-        <SeriesInstanceUID>1.2.840.113619.2.391.25109.1734423225.1.1</SeriesInstanceUID>
+        <SeriesInstanceUID>1.2.840</SeriesInstanceUID>
         <SignedOff>false</SignedOff>
         <SPSDescription>Ekokardiografi</SPSDescription>
-        <SPSId>SEFVXJ0005061653</SPSId>
+        <SPSId>SEFVXJ00</SPSId>
         <SPSLocation />
         <SPSStartDateTime>2024-12-17T00:00:00</SPSStartDateTime>
         <SubCategory />
