@@ -1,84 +1,44 @@
-﻿using Dicom;
-using Dicom.Network;
-using System.Text;
+﻿﻿
+using FellowOakDicom;
+using FellowOakDicom.Network;
+using FellowOakDicom.Samples.CStoreSCP;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.CommandLine;
 
-public class DicomSrServer : DicomService, IDicomServiceProvider, IDicomCStoreProvider
+// Build configuration
+var config = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)     // Important to set base path for appsettings.json
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddCommandLine(args)                      // Optional: override config by command line args
+    .Build();
+
+// Bind configuration section to strongly typed object
+var dicomConfig = config.GetSection("DicomServer").Get<DicomServerConfig>();
+
+// Fallback defaults if config missing
+int port = dicomConfig?.Port ?? 11112;
+string aeTitle = dicomConfig?.AETitle ?? "DICOMSRSERVER";
+string storagePath = dicomConfig?.StoragePath ?? @".\DICOM";
+
+Console.WriteLine($"Starting C-Store SCP server on port {port}, AE Title '{aeTitle}', Storage Path '{storagePath}'");
+
+// Setup DICOM configuration or services (if needed)
+new DicomSetupBuilder()
+    .RegisterServices(s => s.AddFellowOakDicom())
+    .Build();
+
+// You need a way to pass the AE Title and storage path down to your StoreScp instance.
+// One common approach is to modify the StoreScp constructor to accept those parameters
+// and then create a custom factory using DicomServer.Create overload.
+var userState = new StoreScpSettings
 {
-    private static readonly string[] AllowedSrSopClasses = new[]
-    {
-        DicomUID.BasicTextSR.UID,
-        DicomUID.EnhancedSR.UID,
-        DicomUID.ComprehensiveSR.UID
-    };
+    AeTitle = aeTitle,
+    StoragePath = storagePath
+};
 
-    public DicomSrServer(INetworkStream stream, Encoding fallbackEncoding, Logger? log = null)
-        : base(stream, fallbackEncoding, log) { }
+var server = DicomServerFactory.Create<StoreScp>(port, userState: userState);
 
-    public async Task OnReceiveAssociationRequestAsync(DicomAssociation association)
-    {
-        foreach (var pc in association.PresentationContexts)
-        {
-            if (!AllowedSrSopClasses.Contains(pc.AbstractSyntax.UID))
-            {
-                pc.SetResult(DicomPresentationContextResult.RejectAbstractSyntaxNotSupported);
-            }
-            else
-            {
-                pc.AcceptTransferSyntaxes(DicomTransferSyntax.All);
-            }
-        }
+Console.WriteLine("Press <return> to end...");
+Console.ReadLine();
 
-        await SendAssociationAcceptAsync(association);
-    }
-
-    public Task OnReceiveAssociationReleaseRequestAsync()
-    {
-        return SendAssociationReleaseResponseAsync();
-    }
-
-    public DicomCStoreResponse OnCStoreRequest(DicomCStoreRequest request)
-    {
-        var sopClass = request.SOPClassUID.UID;
-
-        if (!AllowedSrSopClasses.Contains(sopClass))
-        {
-            Console.WriteLine($"Rejected non-SR SOP Class: {sopClass}");
-            return new DicomCStoreResponse(request, DicomStatus.SOPClassNotSupported);
-        }
-
-        Console.WriteLine($"✅ Received SR file: {request.SOPInstanceUID.UID}");
-        // You can process or save the DICOM file here
-        return new DicomCStoreResponse(request, DicomStatus.Success);
-    }
-
-    public void OnCStoreRequestException(string tempFileName, Exception e)
-    {
-        Console.WriteLine($"C-STORE Error: {e.Message}");
-    }
-
-    public void OnReceiveAbort(DicomAbortSource source, DicomAbortReason reason)
-    {
-        Console.WriteLine($"Association aborted: {source}, {reason}");
-    }
-
-    public void OnConnectionClosed(Exception? exception)
-    {
-        if (exception != null)
-            Console.WriteLine($"Connection closed due to error: {exception.Message}");
-        else
-            Console.WriteLine("Connection closed.");
-    }
-}
-
-class Program
-{
-    static void Main()
-    {
-        const int port = 11112;
-
-        Console.WriteLine($"🚀 Starting DICOM SR Server on port {port}...");
-        var server = DicomServer.Create<DicomSrServer>(port);
-        Console.WriteLine("✅ Server is running. Press Enter to quit...");
-        Console.ReadLine();
-    }
-}
+server.Dispose();
