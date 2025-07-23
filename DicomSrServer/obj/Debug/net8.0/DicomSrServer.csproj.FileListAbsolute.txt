@@ -1,0 +1,6 @@
+/workspaces/sectra/DicomSrServer/obj/Debug/net8.0/DicomSrServer.csproj.AssemblyReference.cache
+/workspaces/sectra/DicomSrServer/obj/Debug/net8.0/DicomSrServer.GeneratedMSBuildEditorConfig.editorconfig
+/workspaces/sectra/DicomSrServer/obj/Debug/net8.0/DicomSrServer.AssemblyInfoInputs.cache
+/workspaces/sectra/DicomSrServer/obj/Debug/net8.0/DicomSrServer.AssemblyInfo.cs
+/workspaces/sectra/DicomSrServer/obj/Debug/net8.0/DicomSrServer.csproj.CoreCompileInputs.cache
+/workspaces/sectra/DicomSrServer/obj/Debug/net8.0/DicomSrServer.sourcelink.json
