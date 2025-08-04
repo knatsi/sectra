@@ -44,3 +44,4 @@
 /workspaces/sectra/DicomSrServer/bin/Debug/net8.0/System.Text.Encodings.Web.dll
 /workspaces/sectra/DicomSrServer/bin/Debug/net8.0/System.Text.Json.dll
 /workspaces/sectra/DicomSrServer/bin/Debug/net8.0/runtimes/browser/lib/net8.0/System.Text.Encodings.Web.dll
+/workspaces/sectra/DicomSrServer/bin/Debug/net8.0/appsettings.json
