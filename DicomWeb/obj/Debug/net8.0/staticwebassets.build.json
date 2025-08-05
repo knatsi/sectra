@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "3i8sNC7eyhtREmGRm2c5j1KvlkCXVZQoZIRAwII6bwk=",
+  "Source": "DicomSrServer",
+  "BasePath": "_content/DicomSrServer",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
