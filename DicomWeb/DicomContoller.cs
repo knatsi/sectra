@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using FellowOakDicom;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
+using System.Xml.Linq;
 
 [ApiController]
 [Route("")]
@@ -111,13 +112,26 @@ public class DicomController : ControllerBase
                     continue;
                 }
 
-                var measurements = ExtractMeasurementsFromSR(dicomFile.Dataset);
-                foreach (var measurement in measurements)
+                // First try to extract from embedded XML (preferred method)
+                var xmlMeasurements = ExtractMeasurementsFromEmbeddedXml(dicomFile.Dataset, studyUid);
+                if (xmlMeasurements.Count > 0)
                 {
-                    result[measurement.Key] = measurement.Value;
+                    foreach (var measurement in xmlMeasurements)
+                    {
+                        result[measurement.Key] = measurement.Value;
+                    }
+                    _logger.LogDebug("Extracted {Count} measurements from embedded XML in {FilePath}", xmlMeasurements.Count, fileInfo.FilePath);
                 }
-
-                _logger.LogDebug("Extracted {Count} measurements from {FilePath}", measurements.Count, fileInfo.FilePath);
+                else
+                {
+                    // Fallback to DICOM SR parsing if no XML data found
+                    var srMeasurements = ExtractMeasurementsFromSR(dicomFile.Dataset);
+                    foreach (var measurement in srMeasurements)
+                    {
+                        result[measurement.Key] = measurement.Value;
+                    }
+                    _logger.LogDebug("Extracted {Count} measurements from DICOM SR in {FilePath}", srMeasurements.Count, fileInfo.FilePath);
+                }
             }
             catch (Exception ex)
             {
@@ -127,6 +141,97 @@ public class DicomController : ControllerBase
         }
 
         _logger.LogInformation("Total extracted measurements: {Count} for StudyUID: {StudyUID}", result.Count, studyUid);
+        return result;
+    }
+
+    private Dictionary<string, string> ExtractMeasurementsFromEmbeddedXml(DicomDataset dataset, string studyUid)
+    {
+        var result = new Dictionary<string, string>();
+
+        try
+        {
+            // Look for embedded XML data in various possible tags
+            string? xmlContent = null;
+
+            // Check common tags where XML might be embedded
+            var possibleXmlTags = new[]
+            {
+                DicomTag.TextValue,
+                DicomTag.ConceptCodeSequence,
+                // The XML might be in a private tag - let's check the dataset
+            };
+
+            // First, let's look through all elements to find XML content
+            foreach (var element in dataset)
+            {
+                if (element.ValueRepresentation == DicomVR.LT || 
+                    element.ValueRepresentation == DicomVR.ST || 
+                    element.ValueRepresentation == DicomVR.UT)
+                {
+                    var value = dataset.GetSingleValueOrDefault(element.Tag, "");
+                    if (!string.IsNullOrEmpty(value) && value.Contains("<MeasurementExport"))
+                    {
+                        xmlContent = value;
+                        _logger.LogDebug("Found XML content in tag: {Tag}", element.Tag);
+                        break;
+                    }
+                }
+            }
+
+            if (string.IsNullOrEmpty(xmlContent))
+            {
+                _logger.LogDebug("No embedded XML found in DICOM dataset");
+                return result;
+            }
+
+            // Parse the XML content
+            using var stringReader = new StringReader(xmlContent);
+            var xmlDoc = System.Xml.Linq.XDocument.Load(stringReader);
+
+            // Navigate to the parameters
+            var parameters = xmlDoc.Descendants("Parameter").Where(p => 
+            {
+                var resultNo = p.Element("ResultNo")?.Value;
+                return resultNo == "-1"; // Only get average/summary values
+            });
+
+            foreach (var param in parameters)
+            {
+                var parameterId = param.Element("ParameterId")?.Value;
+                var resultNo = param.Element("ResultNo")?.Value;
+                var displayValue = param.Element("DisplayValue")?.Value;
+                var resultValue = param.Element("ResultValue")?.Value;
+                var displayUnit = param.Element("DisplayUnit")?.Value;
+
+                if (!string.IsNullOrEmpty(parameterId) && !string.IsNullOrEmpty(displayValue))
+                {
+                    var key = $"{parameterId}_{resultNo}";
+                    var value = !string.IsNullOrEmpty(displayUnit) ? $"{displayValue} {displayUnit}" : displayValue;
+                    
+                    result[key] = value;
+                    
+                    _logger.LogDebug("Extracted XML measurement: {Key} = {Value}", key, value);
+                }
+                else if (!string.IsNullOrEmpty(parameterId) && !string.IsNullOrEmpty(resultValue))
+                {
+                    // Fallback to ResultValue if DisplayValue is not available
+                    var key = $"{parameterId}_{resultNo}";
+                    var numericValue = double.TryParse(resultValue, out var num) ? num.ToString("F2") : resultValue;
+                    var value = !string.IsNullOrEmpty(displayUnit) ? $"{numericValue} {displayUnit}" : numericValue;
+                    
+                    result[key] = value;
+                    
+                    _logger.LogDebug("Extracted XML measurement (from ResultValue): {Key} = {Value}", key, value);
+                }
+            }
+
+            _logger.LogInformation("Extracted {Count} measurements from embedded XML", result.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error extracting measurements from embedded XML");
+        }
+
         return result;
     }
 
@@ -236,18 +341,49 @@ public class DicomController : ControllerBase
                             var unitSequence = measurementItem.GetSequence(DicomTag.MeasurementUnitsCodeSequence);
                             if (unitSequence?.Items.Count > 0)
                             {
-                                unit = unitSequence.Items[0].GetSingleValueOrDefault(DicomTag.CodeValue, "");
+                                var unitItem = unitSequence.Items[0];
+                                unit = unitItem.GetSingleValueOrDefault(DicomTag.CodeMeaning, "");
+                                if (string.IsNullOrEmpty(unit))
+                                {
+                                    unit = unitItem.GetSingleValueOrDefault(DicomTag.CodeValue, "");
+                                }
                             }
                         }
 
-                        // Create key using code value or concept name
-                        var key = !string.IsNullOrEmpty(codeValue) ? $"{codeValue}_{index}" : $"{conceptName}_{index}";
+                        // Create a more meaningful key - prioritize concept name over code value
+                        string key;
+                        if (!string.IsNullOrEmpty(conceptName) && conceptName != "Findings" && conceptName != "Measurement Group")
+                        {
+                            // Use concept name (more descriptive)
+                            key = $"{conceptName}_{index}";
+                        }
+                        else if (!string.IsNullOrEmpty(codeValue))
+                        {
+                            // Fallback to code value
+                            key = $"{codeValue}_{index}";
+                        }
+                        else
+                        {
+                            // Last resort - generic key
+                            key = $"Measurement_{index}";
+                        }
                         
                         // Store value with unit if available
                         var value = !string.IsNullOrEmpty(unit) ? $"{numericValue} {unit}" : numericValue;
-                        measurements[key] = value;
                         
-                        _logger.LogDebug("Extracted measurement: {Key} = {Value}", key, value);
+                        // Avoid duplicate keys by checking if it already exists
+                        var finalKey = key;
+                        int duplicateCounter = 1;
+                        while (measurements.ContainsKey(finalKey))
+                        {
+                            finalKey = $"{key}_{duplicateCounter}";
+                            duplicateCounter++;
+                        }
+                        
+                        measurements[finalKey] = value;
+                        
+                        _logger.LogDebug("Extracted measurement: {Key} = {Value} (ConceptName: '{ConceptName}', CodeValue: '{CodeValue}')", 
+                            finalKey, value, conceptName, codeValue);
                     }
                 }
             }
