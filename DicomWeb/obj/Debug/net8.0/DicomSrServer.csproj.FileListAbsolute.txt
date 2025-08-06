@@ -75,3 +75,9 @@
 /workspaces/sectra/DicomWeb/obj/Debug/net8.0/DicomSrServer.pdb
 /workspaces/sectra/DicomWeb/obj/Debug/net8.0/DicomSrServer.genruntimeconfig.cache
 /workspaces/sectra/DicomWeb/obj/Debug/net8.0/ref/DicomSrServer.dll
+/workspaces/sectra/DicomWeb/bin/Debug/net8.0/DICOM/a.2.3.4.5.6.7.8.9/BasicTextSR_Test.dcm
+/workspaces/sectra/DicomWeb/bin/Debug/net8.0/DICOM/a.2.3.4.5.6.7.8.9/ComprehensiveSR_Test.dcm
+/workspaces/sectra/DicomWeb/bin/Debug/net8.0/DICOM/a.2.3.4.5.6.7.8.9/EnhancedSR_Test.dcm
+/workspaces/sectra/DicomWeb/bin/Debug/net8.0/DICOM/a.2.3.4.5.6.7.8.9/KeyObjectSelection_Test.dcm
+/workspaces/sectra/DicomWeb/bin/Debug/net8.0/DICOM/a.2.3.4.5.6.7.8.9/MammographyCADSR_Test.dcm
+/workspaces/sectra/DicomWeb/bin/Debug/net8.0/DICOM/test.dcm

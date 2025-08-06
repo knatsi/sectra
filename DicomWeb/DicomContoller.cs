@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using FellowOakDicom;
-using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.Extensions.Options;
 
 [ApiController]
 [Route("")]
@@ -21,7 +22,8 @@ public class DicomController : ControllerBase
     /// </summary>
     [HttpGet]
     [Route("v1/GetStructuredDataCompatibility")]
-    public CompatibilityInfo GetStructuredDataCompatibility() {
+    public CompatibilityInfo GetStructuredDataCompatibility() 
+    {
         return CompatibilityInfoV1;
     }
 
@@ -45,103 +47,222 @@ public class DicomController : ControllerBase
     }
 
     /// <summary>
-    /// Gets the structured data to use in templates.
+    /// Gets the structured data to use in templates from DICOM files.
     /// </summary>  
     [HttpPost]
     [Route("v1/GetStructuredData")]
-    public GetStructuredDataResult GetStructuredData([FromBody] GetStructuredDataRequest request) {
-        var studyUid = request.Exam?.StudyUid;
-        var patientIds = request.Patient?.Ids;
-        var filePath = FindMatchingFile(studyUid, patientIds);
-            if (filePath == null)
-                {
-                    throw new FileNotFoundException("Matching XML file not found.");
-                }
-        var data = ExtractData(studyUid, filePath);
-        
-        return new GetStructuredDataResult { Compatibility = CompatibilityInfoV1, PropValues = data };
-    }
-
-    private Dictionary<string, string> ExtractData(string studyUid, string filePath)
+    public async Task<ActionResult<GetStructuredDataResult>> GetStructuredData([FromBody] GetStructuredDataRequest request) 
     {
-    var result = new Dictionary<string, string>();
-
-    var path = filePath;
-    Console.WriteLine($"[DEBUG] Loading file from path: {path}");
-
-    if (!System.IO.File.Exists(path)) {
-        Console.WriteLine("[ERROR] File not found.");
-        throw new FileNotFoundException($"File not found: {path}");
-    }
-
-    var serializer = new XmlSerializer(typeof(MeasurementExport));
-    using var reader = new StreamReader(path);
-    var export = (MeasurementExport?)serializer.Deserialize(reader);
-
-    if (export?.Patient?.Study == null) {
-        Console.WriteLine("[WARN] No Patient study found.");
-        return result;
-    }
-        
-    var study = export.Patient.Study;
-       Console.WriteLine($"[DEBUG] Found Study(XML): {study.StudyInstanceUID} With StudyID: {study.StudyId}");
-
-    // Only proceed if StudyUID matches request. Correct? What should be checked against?
-    if (study.StudyInstanceUID != studyUid) {
-        Console.WriteLine($"[WARN] StudyUID(XML) does not match input ({studyUid}). Skipping.");
-        return result;
-    }
-
-    var parameters = study.Series?.Parameters;
-    if (parameters == null) return result;
-
-    foreach (var param in parameters)
-    {
-        if (!string.IsNullOrEmpty(param.ParameterId))
+        try
         {
-            result[param.ParameterId + "_" + param.ResultNo] = param.DisplayValue ?? "";
+            var studyUid = request.Exam?.StudyUid;
+            if (string.IsNullOrEmpty(studyUid))
+            {
+                _logger.LogWarning("No StudyUID provided in request");
+                return BadRequest("StudyUID is required");
+            }
+
+            // Get all DICOM files for the study
+            var dicomFiles = await _dicomFileService.GetByStudyUidAsync(studyUid);
+            
+            if (!dicomFiles.Any())
+            {
+                _logger.LogWarning("No DICOM files found for StudyUID: {StudyUID}", studyUid);
+                return NotFound($"No DICOM files found for StudyUID: {studyUid}");
+            }
+
+            // Extract structured data from DICOM files
+            var data = await ExtractDataFromDicomFiles(studyUid, dicomFiles);
+            
+            return Ok(new GetStructuredDataResult 
+            { 
+                Compatibility = CompatibilityInfoV1, 
+                PropValues = data 
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error extracting structured data for StudyUID: {StudyUID}", request.Exam?.StudyUid);
+            return StatusCode(500, "Internal server error");
         }
     }
 
-    return result;
-    }
-
-    private static Dictionary<string, object> ExtractMetadata(DicomDataset dataset)
+    private async Task<Dictionary<string, string>> ExtractDataFromDicomFiles(string studyUid, List<DicomFileInfo> dicomFiles)
     {
-        var metadata = new Dictionary<string, object>();
+        var result = new Dictionary<string, string>();
 
-        // Common DICOM tags
-        var commonTags = new[]
-        {
-            DicomTag.SOPInstanceUID,
-            DicomTag.StudyInstanceUID,
-            DicomTag.SeriesInstanceUID,
-            DicomTag.PatientID,
-            DicomTag.PatientName,
-            DicomTag.StudyDate,
-            DicomTag.StudyTime,
-            DicomTag.Modality,
-            DicomTag.SOPClassUID,
-            DicomTag.SeriesNumber,
-            DicomTag.InstanceNumber,
-            DicomTag.StudyDescription,
-            DicomTag.SeriesDescription
-        };
+        _logger.LogDebug("Extracting data from {Count} DICOM files for StudyUID: {StudyUID}", dicomFiles.Count, studyUid);
 
-        foreach (var tag in commonTags)
+        foreach (var fileInfo in dicomFiles)
         {
-            if (dataset.Contains(tag))
+            try
             {
-                var value = dataset.GetSingleValueOrDefault(tag, "");
-                metadata[tag.DictionaryEntry.Name] = value;
+                // Only process Structured Report DICOM files
+                if (!IsStructuredReportSopClass(fileInfo.SOPClassUID))
+                {
+                    _logger.LogDebug("Skipping non-SR file: {FilePath} (SOP Class: {SOPClass})", fileInfo.FilePath, fileInfo.SOPClassUID);
+                    continue;
+                }
+
+                var dicomFile = await _dicomFileService.GetByInstanceUidAsync(fileInfo.InstanceUID);
+                if (dicomFile == null)
+                {
+                    _logger.LogWarning("Could not load DICOM file: {FilePath}", fileInfo.FilePath);
+                    continue;
+                }
+
+                var measurements = ExtractMeasurementsFromSR(dicomFile.Dataset);
+                foreach (var measurement in measurements)
+                {
+                    result[measurement.Key] = measurement.Value;
+                }
+
+                _logger.LogDebug("Extracted {Count} measurements from {FilePath}", measurements.Count, fileInfo.FilePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing DICOM file: {FilePath}", fileInfo.FilePath);
+                continue;
             }
         }
 
-        return metadata;
+        _logger.LogInformation("Total extracted measurements: {Count} for StudyUID: {StudyUID}", result.Count, studyUid);
+        return result;
+    }
+
+    private Dictionary<string, string> ExtractMeasurementsFromSR(DicomDataset dataset)
+    {
+        var measurements = new Dictionary<string, string>();
+
+        try
+        {
+            // Check if this is a structured report
+            var sopClassUid = dataset.GetSingleValueOrDefault(DicomTag.SOPClassUID, "");
+            if (!IsStructuredReportSopClass(sopClassUid))
+            {
+                return measurements;
+            }
+
+            // Extract content from the Content Sequence
+            if (dataset.Contains(DicomTag.ContentSequence))
+            {
+                var contentSequence = dataset.GetSequence(DicomTag.ContentSequence);
+                ProcessContentSequence(contentSequence, measurements, "");
+            }
+
+            _logger.LogDebug("Extracted {Count} measurements from SR dataset", measurements.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error extracting measurements from SR dataset");
+        }
+
+        return measurements;
+    }
+
+    private void ProcessContentSequence(DicomSequence contentSequence, Dictionary<string, string> measurements, string prefix)
+    {
+        for (int i = 0; i < contentSequence.Items.Count; i++)
+        {
+            var item = contentSequence.Items[i];
+            
+            try
+            {
+                var valueType = item.GetSingleValueOrDefault(DicomTag.ValueType, "");
+                var conceptNameSequence = item.GetSequence(DicomTag.ConceptNameCodeSequence);
+                
+                string conceptName = "";
+                string codeValue = "";
+                
+                if (conceptNameSequence != null && conceptNameSequence.Items.Count > 0)
+                {
+                    var conceptItem = conceptNameSequence.Items[0];
+                    conceptName = conceptItem.GetSingleValueOrDefault(DicomTag.CodeMeaning, "");
+                    codeValue = conceptItem.GetSingleValueOrDefault(DicomTag.CodeValue, "");
+                }
+
+                // Process numeric measurements
+                if (valueType == "NUM")
+                {
+                    ProcessNumericMeasurement(item, measurements, conceptName, codeValue, i);
+                }
+                // Process text values
+                else if (valueType == "TEXT")
+                {
+                    var textValue = item.GetSingleValueOrDefault(DicomTag.TextValue, "");
+                    if (!string.IsNullOrEmpty(conceptName) && !string.IsNullOrEmpty(textValue))
+                    {
+                        var key = !string.IsNullOrEmpty(codeValue) ? $"{codeValue}_{i}" : $"{conceptName}_{i}";
+                        measurements[key] = textValue;
+                    }
+                }
+                // Process containers (nested content)
+                else if (valueType == "CONTAINER")
+                {
+                    if (item.Contains(DicomTag.ContentSequence))
+                    {
+                        var nestedSequence = item.GetSequence(DicomTag.ContentSequence);
+                        var nestedPrefix = !string.IsNullOrEmpty(conceptName) ? $"{prefix}{conceptName}_" : prefix;
+                        ProcessContentSequence(nestedSequence, measurements, nestedPrefix);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing content sequence item {Index}", i);
+                continue;
+            }
+        }
+    }
+
+    private void ProcessNumericMeasurement(DicomDataset item, Dictionary<string, string> measurements, string conceptName, string codeValue, int index)
+    {
+        try
+        {
+            if (item.Contains(DicomTag.MeasuredValueSequence))
+            {
+                var measuredValueSequence = item.GetSequence(DicomTag.MeasuredValueSequence);
+                if (measuredValueSequence?.Items.Count > 0)
+                {
+                    var measurementItem = measuredValueSequence.Items[0];
+                    var numericValue = measurementItem.GetSingleValueOrDefault(DicomTag.NumericValue, "");
+                    
+                    if (!string.IsNullOrEmpty(numericValue))
+                    {
+                        // Get unit of measurement
+                        string unit = "";
+                        if (measurementItem.Contains(DicomTag.MeasurementUnitsCodeSequence))
+                        {
+                            var unitSequence = measurementItem.GetSequence(DicomTag.MeasurementUnitsCodeSequence);
+                            if (unitSequence?.Items.Count > 0)
+                            {
+                                unit = unitSequence.Items[0].GetSingleValueOrDefault(DicomTag.CodeValue, "");
+                            }
+                        }
+
+                        // Create key using code value or concept name
+                        var key = !string.IsNullOrEmpty(codeValue) ? $"{codeValue}_{index}" : $"{conceptName}_{index}";
+                        
+                        // Store value with unit if available
+                        var value = !string.IsNullOrEmpty(unit) ? $"{numericValue} {unit}" : numericValue;
+                        measurements[key] = value;
+                        
+                        _logger.LogDebug("Extracted measurement: {Key} = {Value}", key, value);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing numeric measurement for concept: {ConceptName}", conceptName);
+        }
     }
 
     private static bool IsStructuredReportSopClass(string sopClassUid)
     {
+        if (string.IsNullOrEmpty(sopClassUid))
+            return false;
+
         var srSopClasses = new[]
         {
             DicomUID.EnhancedSRStorage.UID,
@@ -159,51 +280,49 @@ public class DicomController : ControllerBase
 }
 
 /// <summary>Contains the information passed to the GetStructuredData endpoint.</summary>
-public class GetStructuredDataRequest {
-    public required User? User { get; init; }
-
-    public required Patient? Patient { get; init; }
-
-    public required Exam? Exam { get; init; }
+public class GetStructuredDataRequest 
+{
+    public User? User { get; init; }
+    public Patient? Patient { get; init; }
+    public Exam? Exam { get; init; }
 }
 
 /// <inheritdoc cref="GetStructuredDataRequest"/>
-public class User {
-    public required string? Login { get; init; }
-
-    public required string? Domain { get; init; }
-
-    public required string? Name { get; init; }
+public class User 
+{
+    public string? Login { get; init; }
+    public string? Domain { get; init; }
+    public string? Name { get; init; }
 }
 
 /// <inheritdoc cref="GetStructuredDataRequest"/>
-public class Patient {
-    public required string[]? Ids { get; init; }
+public class Patient 
+{
+    public string[]? Ids { get; init; }
 }
 
 /// <inheritdoc cref="GetStructuredDataRequest"/>
-public class Exam {
-    public required string? ExamNo { get; init; }
-
-    public required string? AccNo { get; init; }
-
-    public required string? StudyUid { get; init; }
-
-    public required DateTime? Date { get; init; }
+public class Exam 
+{
+    public string? ExamNo { get; init; }
+    public string? AccNo { get; init; }
+    public string? StudyUid { get; init; }
+    public DateTime? Date { get; init; }
 }
 
 /// <summary>Contains the information returned from the GetStructuredData endpoint.</summary>
-public class GetStructuredDataResult {
-    [JsonProperty(PropertyName = "compatibility")]
-    public required CompatibilityInfo Compatibility { get; init; }
+public class GetStructuredDataResult 
+{
+    [JsonPropertyName("compatibility")]
+    public CompatibilityInfo Compatibility { get; init; } = null!;
 
-    [JsonProperty(PropertyName = "propValues")]
-    public required IReadOnlyDictionary<string, string> PropValues { get; init; }
+    [JsonPropertyName("propValues")]
+    public IReadOnlyDictionary<string, string> PropValues { get; init; } = null!;
 }
 
 /// <summary>Contains compatibility information for the data provider.</summary>
-public class CompatibilityInfo {
-    public required string Uid { get; init; }
-
-    public required int Version { get; init; }
+public class CompatibilityInfo 
+{
+    public string Uid { get; init; } = null!;
+    public int Version { get; init; }
 }

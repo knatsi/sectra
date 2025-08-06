@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DicomSrServer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7639b7d91e7e49ce139e21be24835e9f611c3ed5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3b3649cf4e6ee1595dbbc209e245bb556eaaf25d")]
 [assembly: System.Reflection.AssemblyProductAttribute("DicomSrServer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DicomSrServer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
