@@ -3,11 +3,12 @@ using FellowOakDicom;
 using System.Text.Json;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("")]
 public class DicomController : ControllerBase
 {
     private readonly IDicomFileService _dicomFileService;
     private readonly ILogger<DicomController> _logger;
+    private static readonly CompatibilityInfo CompatibilityInfoV1 = new() { Uid = "HeartProviderAdults", Version = 1 };
 
     public DicomController(IDicomFileService dicomFileService, ILogger<DicomController> logger)
     {
@@ -16,9 +17,19 @@ public class DicomController : ControllerBase
     }
 
     /// <summary>
+    /// Gets the compatibility information about this service.
+    /// </summary>
+    [HttpGet]
+    [Route("v1/GetStructuredDataCompatibility")]
+    public CompatibilityInfo GetStructuredDataCompatibility() {
+        return CompatibilityInfoV1;
+    }
+
+    /// <summary>
     /// Get all DICOM files
     /// </summary>
     [HttpGet]
+    [Route("Dicom/list")]
     public async Task<ActionResult<List<DicomFileInfo>>> GetAllFiles()
     {
         try
@@ -34,164 +45,65 @@ public class DicomController : ControllerBase
     }
 
     /// <summary>
-    /// Get DICOM file info by Instance UID
-    /// </summary>
-    [HttpGet("instance/{instanceUid}")]
-    public async Task<ActionResult<DicomFileInfo>> GetFileInfo(string instanceUid)
-    {
-        try
-        {
-            var fileInfo = await _dicomFileService.GetFileInfoByInstanceUidAsync(instanceUid);
-            if (fileInfo == null)
-            {
-                return NotFound($"DICOM file with Instance UID '{instanceUid}' not found");
-            }
+    /// Gets the structured data to use in templates.
+    /// </summary>  
+    [HttpPost]
+    [Route("v1/GetStructuredData")]
+    public GetStructuredDataResult GetStructuredData([FromBody] GetStructuredDataRequest request) {
+        var studyUid = request.Exam?.StudyUid;
+        var patientIds = request.Patient?.Ids;
+        var filePath = FindMatchingFile(studyUid, patientIds);
+            if (filePath == null)
+                {
+                    throw new FileNotFoundException("Matching XML file not found.");
+                }
+        var data = ExtractData(studyUid, filePath);
+        
+        return new GetStructuredDataResult { Compatibility = CompatibilityInfoV1, PropValues = data };
+    }
 
-            return Ok(fileInfo);
-        }
-        catch (Exception ex)
+    private Dictionary<string, string> ExtractData(string studyUid, string filePath)
+    {
+    var result = new Dictionary<string, string>();
+
+    var path = filePath;
+    Console.WriteLine($"[DEBUG] Loading file from path: {path}");
+
+    if (!System.IO.File.Exists(path)) {
+        Console.WriteLine("[ERROR] File not found.");
+        throw new FileNotFoundException($"File not found: {path}");
+    }
+
+    var serializer = new XmlSerializer(typeof(MeasurementExport));
+    using var reader = new StreamReader(path);
+    var export = (MeasurementExport?)serializer.Deserialize(reader);
+
+    if (export?.Patient?.Study == null) {
+        Console.WriteLine("[WARN] No Patient study found.");
+        return result;
+    }
+        
+    var study = export.Patient.Study;
+       Console.WriteLine($"[DEBUG] Found Study(XML): {study.StudyInstanceUID} With StudyID: {study.StudyId}");
+
+    // Only proceed if StudyUID matches request. Correct? What should be checked against?
+    if (study.StudyInstanceUID != studyUid) {
+        Console.WriteLine($"[WARN] StudyUID(XML) does not match input ({studyUid}). Skipping.");
+        return result;
+    }
+
+    var parameters = study.Series?.Parameters;
+    if (parameters == null) return result;
+
+    foreach (var param in parameters)
+    {
+        if (!string.IsNullOrEmpty(param.ParameterId))
         {
-            _logger.LogError(ex, "Error retrieving DICOM file info for Instance UID: {InstanceUid}", instanceUid);
-            return StatusCode(500, "Internal server error");
+            result[param.ParameterId + "_" + param.ResultNo] = param.DisplayValue ?? "";
         }
     }
 
-    /// <summary>
-    /// Get DICOM file content by Instance UID
-    /// </summary>
-    [HttpGet("instance/{instanceUid}/download")]
-    public async Task<IActionResult> DownloadFile(string instanceUid)
-    {
-        try
-        {
-            var dicomFile = await _dicomFileService.GetByInstanceUidAsync(instanceUid);
-            if (dicomFile == null)
-            {
-                return NotFound($"DICOM file with Instance UID '{instanceUid}' not found");
-            }
-
-            var memoryStream = new MemoryStream();
-            await dicomFile.SaveAsync(memoryStream);
-            memoryStream.Position = 0;
-
-            return File(memoryStream, "application/dicom", $"{instanceUid}.dcm");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error downloading DICOM file for Instance UID: {InstanceUid}", instanceUid);
-            return StatusCode(500, "Internal server error");
-        }
-    }
-
-    /// <summary>
-    /// Get DICOM metadata as JSON by Instance UID
-    /// </summary>
-    [HttpGet("instance/{instanceUid}/metadata")]
-    public async Task<IActionResult> GetMetadata(string instanceUid)
-    {
-        try
-        {
-            var dicomFile = await _dicomFileService.GetByInstanceUidAsync(instanceUid);
-            if (dicomFile == null)
-            {
-                return NotFound($"DICOM file with Instance UID '{instanceUid}' not found");
-            }
-
-            var metadata = ExtractMetadata(dicomFile.Dataset);
-            return Ok(metadata);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving metadata for Instance UID: {InstanceUid}", instanceUid);
-            return StatusCode(500, "Internal server error");
-        }
-    }
-
-    /// <summary>
-    /// Get files by Study UID
-    /// </summary>
-    [HttpGet("study/{studyUid}")]
-    public async Task<ActionResult<List<DicomFileInfo>>> GetFilesByStudy(string studyUid)
-    {
-        try
-        {
-            var files = await _dicomFileService.GetByStudyUidAsync(studyUid);
-            return Ok(files);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving DICOM files for Study UID: {StudyUid}", studyUid);
-            return StatusCode(500, "Internal server error");
-        }
-    }
-
-    /// <summary>
-    /// Delete DICOM file by Instance UID
-    /// </summary>
-    [HttpDelete("instance/{instanceUid}")]
-    public async Task<IActionResult> DeleteFile(string instanceUid)
-    {
-        try
-        {
-            var success = await _dicomFileService.DeleteByInstanceUidAsync(instanceUid);
-            if (!success)
-            {
-                return NotFound($"DICOM file with Instance UID '{instanceUid}' not found");
-            }
-
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting DICOM file for Instance UID: {InstanceUid}", instanceUid);
-            return StatusCode(500, "Internal server error");
-        }
-    }
-
-    /// <summary>
-    /// Upload DICOM file
-    /// </summary>
-    [HttpPost("upload")]
-    public async Task<IActionResult> UploadFile(IFormFile file)
-    {
-        try
-        {
-            if (file == null || file.Length == 0)
-            {
-                return BadRequest("No file provided");
-            }
-
-            if (!file.ContentType.Equals("application/dicom", StringComparison.OrdinalIgnoreCase) 
-                && !file.FileName.EndsWith(".dcm", StringComparison.OrdinalIgnoreCase))
-            {
-                return BadRequest("File must be a DICOM file (.dcm)");
-            }
-
-            using var stream = file.OpenReadStream();
-            var dicomFile = await DicomFile.OpenAsync(stream);
-            
-            // Validate it's an SR document
-            var sopClassUid = dicomFile.Dataset.GetSingleValue<string>(DicomTag.SOPClassUID);
-            if (!IsStructuredReportSopClass(sopClassUid))
-            {
-                return BadRequest("File must be a DICOM Structured Report");
-            }
-
-            // This would trigger the normal storage logic via C-Store if needed
-            // For now, we'll just return the file info
-            var instanceUid = dicomFile.Dataset.GetSingleValue<string>(DicomTag.SOPInstanceUID);
-            
-            return Ok(new { 
-                Message = "File processed successfully", 
-                InstanceUID = instanceUid,
-                SOPClassUID = sopClassUid
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error uploading DICOM file");
-            return StatusCode(500, "Internal server error");
-        }
+    return result;
     }
 
     private static Dictionary<string, object> ExtractMetadata(DicomDataset dataset)
@@ -244,4 +156,54 @@ public class DicomController : ControllerBase
 
         return srSopClasses.Contains(sopClassUid);
     }
+}
+
+/// <summary>Contains the information passed to the GetStructuredData endpoint.</summary>
+public class GetStructuredDataRequest {
+    public required User? User { get; init; }
+
+    public required Patient? Patient { get; init; }
+
+    public required Exam? Exam { get; init; }
+}
+
+/// <inheritdoc cref="GetStructuredDataRequest"/>
+public class User {
+    public required string? Login { get; init; }
+
+    public required string? Domain { get; init; }
+
+    public required string? Name { get; init; }
+}
+
+/// <inheritdoc cref="GetStructuredDataRequest"/>
+public class Patient {
+    public required string[]? Ids { get; init; }
+}
+
+/// <inheritdoc cref="GetStructuredDataRequest"/>
+public class Exam {
+    public required string? ExamNo { get; init; }
+
+    public required string? AccNo { get; init; }
+
+    public required string? StudyUid { get; init; }
+
+    public required DateTime? Date { get; init; }
+}
+
+/// <summary>Contains the information returned from the GetStructuredData endpoint.</summary>
+public class GetStructuredDataResult {
+    [JsonProperty(PropertyName = "compatibility")]
+    public required CompatibilityInfo Compatibility { get; init; }
+
+    [JsonProperty(PropertyName = "propValues")]
+    public required IReadOnlyDictionary<string, string> PropValues { get; init; }
+}
+
+/// <summary>Contains compatibility information for the data provider.</summary>
+public class CompatibilityInfo {
+    public required string Uid { get; init; }
+
+    public required int Version { get; init; }
 }

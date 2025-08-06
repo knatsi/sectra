@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("XmlToJsonApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+46eb60465cbeceaab53d23bd386deb6c707c4f1b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7639b7d91e7e49ce139e21be24835e9f611c3ed5")]
 [assembly: System.Reflection.AssemblyProductAttribute("XmlToJsonApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("XmlToJsonApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
