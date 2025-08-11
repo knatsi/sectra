@@ -1,6 +1,0 @@
-2025-08-11 10:49:01,962 - WARNING: DICOM read strategy failed: File is missing DICOM File Meta Information header or the 'DICM' prefix is missing from the header. Use force=True to force reading.
-2025-08-11 10:49:01,963 - WARNING: No StudyInstanceUID for dicom_sr_in/1.2.840.113619.2.391.151813.1754416748.3008.223.dcm
-2025-08-11 10:53:05,737 - WARNING: DICOM read strategy failed: File is missing DICOM File Meta Information header or the 'DICM' prefix is missing from the header. Use force=True to force reading.
-2025-08-11 10:53:05,738 - WARNING: Generated study UID: GENERATED_1.2.840.113619.2.391.151813.1754416748.3008.223.dcm
-2025-08-11 10:53:05,738 - WARNING: No ContentSequence found in dataset
-2025-08-11 10:53:05,738 - WARNING: No measurements found in dicom_sr_in/1.2.840.113619.2.391.151813.1754416748.3008.223.dcm
