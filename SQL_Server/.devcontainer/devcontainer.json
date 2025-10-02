@@ -1,0 +1,13 @@
+{
+  "name": "csharp-sqlserver-dev",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [1433, 5000, 5001],
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "8.0"
+    }
+  },
+  "postCreateCommand": "dotnet restore"
+}
